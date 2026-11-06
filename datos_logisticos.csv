@@ -1,0 +1,26 @@
+﻿ID_Envio,Ruta,Distancia_km,Costo_Total_Soles
+ENV-001,Lima - Chosica,45,466.89
+ENV-002,Lima - Cañete,140,921.23
+ENV-003,Lima - Barranca,185,1142.79
+ENV-004,Lima - Chincha,200,1222.18
+ENV-005,Lima - Pisco,235,1375.8
+ENV-006,Lima - Huacho,150,968.6
+ENV-007,Lima - Ica,305,1733.27
+ENV-008,Lima - La Oroya,175,1095.37
+ENV-009,Lima - Huancayo,310,1732.18
+ENV-010,Lima - Chimbote,430,2323.33
+ENV-011,Lima - Huaraz,400,2162.59
+ENV-012,Lima - Trujillo,560,2927.57
+ENV-013,Lima - Ayacucho,565,2967.47
+ENV-014,Lima - Chiclayo,770,3887.07
+ENV-015,Lima - Cajamarca,860,4318.66
+ENV-016,Lima - Arequipa,1010,5075.28
+ENV-017,Lima - Piura,990,4961.89
+ENV-018,Lima - Cusco,1100,5543.83
+ENV-019,Lima - Puno,1290,6395.15
+ENV-020,Lima - Tacna,1295,6392.84
+ENV-021,Lima - Tumbes,1270,6420.45
+ENV-022,Lima - Moquegua,1140,5711.7
+ENV-023,Lima - Tarma,230,1354.62
+ENV-024,Lima - Huánuco,415,2218.35
+ENV-025,Lima - Tingo María,550,2878.02
