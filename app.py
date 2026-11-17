@@ -270,20 +270,44 @@ def cargar_datos_base():
         return pd.read_csv("datos_logisticos.csv")
     else:
         rutas = [
-            ("Lima - Chosica", 45, 465.0), ("Lima - Cañete", 140, 920.0),
-            ("Lima - Barranca", 185, 1140.0), ("Lima - Chincha", 200, 1210.0),
-            ("Lima - Pisco", 235, 1378.0), ("Lima - Ica", 305, 1714.0),
-            ("Lima - Huancayo", 310, 1738.0), ("Lima - Chimbote", 430, 2314.0),
-            ("Lima - Huaraz", 400, 2170.0), ("Lima - Trujillo", 560, 2938.0),
-            ("Lima - Chiclayo", 770, 3946.0), ("Lima - Cajamarca", 860, 4378.0),
-            ("Lima - Arequipa", 1010, 5098.0), ("Lima - Piura", 990, 5002.0),
-            ("Lima - Cusco", 1100, 5530.0), ("Lima - Puno", 1290, 6442.0),
-            ("Lima - Tacna", 1295, 6466.0)
+            ("Lima - Chosica", "Sierra", 45, 466.89, 10.65),
+            ("Lima - Cañete", "Costa", 140, 921.23, 21.85),
+            ("Lima - Trujillo", "Costa", 560, 2927.57, 75.40),
+            ("Lima - Cusco", "Sierra", 1100, 5543.83, 169.10),
+            ("Lima - Tacna", "Costa", 1295, 6392.84, 166.50)
         ]
         return pd.DataFrame([
-            {"ID_Envio": f"ENV-{i+1:03d}", "Ruta": r[0], "Distancia_km": r[1], "Costo_Total_Soles": r[2]}
+            {
+                "ID_Envio": f"ENV-{i+1:03d}", "Ruta": r[0], "Region": r[1],
+                "Distancia_km": r[2], "Costo_Total_Soles": r[3], "Consumo_Combustible_Gal": r[4]
+            }
             for i, r in enumerate(rutas)
         ])
+
+def calcular_regresion(x_arr, y_arr):
+    x_v = np.asarray(x_arr, dtype=float)
+    y_v = np.asarray(y_arr, dtype=float)
+    n_v = len(x_v)
+    sx, sy = np.sum(x_v), np.sum(y_v)
+    sxy, sx2, sy2 = np.sum(x_v * y_v), np.sum(x_v**2), np.sum(y_v**2)
+    mx, my = np.mean(x_v), np.mean(y_v)
+    den = n_v * sx2 - sx**2
+    m_v = (n_v * sxy - sx * sy) / den if den != 0 else 0.0
+    b_v = (sy - m_v * sx) / n_v if den != 0 else my
+    yp = m_v * x_v + b_v
+    res = y_v - yp
+    sst = np.sum((y_v - my)**2)
+    ssr = np.sum(res**2)
+    r2_v = 1.0 - (ssr / sst) if sst != 0 else 0.0
+    r_v = np.corrcoef(x_v, y_v)[0, 1] if n_v > 1 else 0.0
+    rmse_v = np.sqrt(np.mean(res**2))
+    steyx_v = np.sqrt(ssr / (n_v - 2)) if n_v > 2 else 0.0
+    return {
+        "n": n_v, "sum_x": sx, "sum_y": sy, "sum_xy": sxy, "sum_x2": sx2, "sum_y2": sy2,
+        "mean_x": mx, "mean_y": my, "denom": den, "m": m_v, "b": b_v,
+        "y_pred": yp, "residuos": res, "ss_tot": sst, "ss_res": ssr,
+        "r2": r2_v, "r": r_v, "rmse": rmse_v, "steyx": steyx_v
+    }
 
 df_base = cargar_datos_base()
 
@@ -294,7 +318,7 @@ st.sidebar.markdown("""
 <div style="padding: 12px 0 20px 0; border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 16px;">
     <div style="font-size: 0.75rem; text-transform: uppercase; color: #38BDF8; font-weight: 700; letter-spacing: 0.1em;">USIL &bull; 2026</div>
     <div style="font-size: 1.15rem; font-weight: 800; color: #FFFFFF; margin: 2px 0;">Panel de Control</div>
-    <div style="font-size: 0.8rem; color: #94A3B8;">Matemática Discreta &bull; Regresión</div>
+    <div style="font-size: 0.8rem; color: #94A3B8;">Matemática Discreta &bull; 2 Modelos</div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -303,10 +327,31 @@ modo_datos = st.sidebar.radio(
     ["Dataset Oficial (25 Rutas Perú)", "Subir Archivo (CSV / Excel)", "Generador Sintético Dinámico"]
 )
 
+modelo_activo = "Modelo 1: Costo de Transporte (S/)"
+unidad_prefijo = "S/ "
+unidad_sufijo = ""
+etiqueta_y = "Costo Total de Transporte (S/)"
+
 if modo_datos == "Dataset Oficial (25 Rutas Perú)":
     df_actual = df_base.copy()
     col_x_name = "Distancia_km"
-    col_y_name = "Costo_Total_Soles"
+    modelo_activo = st.sidebar.selectbox(
+        "Seleccione el Modelo de Regresión:",
+        [
+            "Modelo 1: Distancia vs. Costo de Transporte (S/)",
+            "Modelo 2: Distancia vs. Consumo de Combustible (gal)"
+        ]
+    )
+    if "Modelo 1" in modelo_activo:
+        col_y_name = "Costo_Total_Soles"
+        unidad_prefijo = "S/ "
+        unidad_sufijo = ""
+        etiqueta_y = "Costo Total de Transporte (S/)"
+    else:
+        col_y_name = "Consumo_Combustible_Gal"
+        unidad_prefijo = ""
+        unidad_sufijo = " gal"
+        etiqueta_y = "Consumo de Combustible (galones)"
     st.sidebar.success(f"✓ {len(df_actual)} rutas logísticas activas.")
 
 elif modo_datos == "Subir Archivo (CSV / Excel)":
@@ -321,6 +366,9 @@ elif modo_datos == "Subir Archivo (CSV / Excel)":
             if len(num_cols) >= 2:
                 col_x_name = st.sidebar.selectbox("Variable X (Predictor):", num_cols, index=0)
                 col_y_name = st.sidebar.selectbox("Variable Y (Respuesta):", num_cols, index=1)
+                etiqueta_y = col_y_name
+                unidad_prefijo = ""
+                unidad_sufijo = ""
                 st.sidebar.success(f"Cargados {len(df_actual)} registros.")
             else:
                 st.sidebar.error("Se necesitan al menos 2 columnas numéricas.")
@@ -355,6 +403,9 @@ else:
     })
     col_x_name = "Distancia_km"
     col_y_name = "Costo_Total_Soles"
+
+def fmt_val(v, dec=2):
+    return f"{unidad_prefijo}{v:,.{dec}f}{unidad_sufijo}"
 
 # -----------------------------------------------------------------------------
 # 5. CÁLCULO DE MÍNIMOS CUADRADOS (MATEMÁTICA DISCRETA)
@@ -561,11 +612,11 @@ anime_widget_code = f"""
         <div class="top-row">
             <div class="status-badge">
                 <div class="glow-circle"></div>
-                <span>Simulador de Ruta en Vivo (anime.js v3.2.2)</span>
+                <span>Simulador de Ruta en Vivo (anime.js v3.2.2) — {modelo_activo}</span>
             </div>
             <div class="odometer-box">
-                <span class="odometer-label">Costo Proyectado:</span>
-                <span class="odometer-val" id="odometer">S/ 0.00</span>
+                <span class="odometer-label">Valor Proyectado:</span>
+                <span class="odometer-val" id="odometer">{unidad_prefijo}0.00{unidad_sufijo}</span>
             </div>
         </div>
 
@@ -588,11 +639,11 @@ anime_widget_code = f"""
         <div class="stats-strip">
             <div class="stat-item">
                 <div class="stat-name">Pendiente (m)</div>
-                <div class="stat-number">S/ {m:.4f}/km</div>
+                <div class="stat-number">{fmt_val(m, 4)}/km</div>
             </div>
             <div class="stat-item">
-                <div class="stat-name">Costo Base Fijo (b)</div>
-                <div class="stat-number">S/ {b:.2f}</div>
+                <div class="stat-name">Intersección Base (b)</div>
+                <div class="stat-number">{fmt_val(b, 2)}</div>
             </div>
             <div class="stat-item">
                 <div class="stat-name">Precisión (R²)</div>
@@ -611,16 +662,18 @@ anime_widget_code = f"""
         const targetDist = {dist_slider_default};
         const maxDist = {float(np.ceil(x.max()*1.15))};
         const targetCost = m * targetDist + b;
+        const uPref = "{unidad_prefijo}";
+        const uSuf = "{unidad_sufijo}";
 
         const counterObj = {{ val: 0 }};
         anime({{
             targets: counterObj,
             val: targetCost,
-            round: 10,
+            round: 100,
             easing: 'easeOutExpo',
             duration: 1800,
             update: function() {{
-                document.getElementById('odometer').innerHTML = 'S/ ' + counterObj.val.toLocaleString('es-PE', {{ minimumFractionDigits: 2, maximumFractionDigits: 2 }});
+                document.getElementById('odometer').innerHTML = uPref + counterObj.val.toLocaleString('es-PE', {{ minimumFractionDigits: 2, maximumFractionDigits: 2 }}) + uSuf;
             }}
         }});
 
@@ -664,12 +717,12 @@ st.markdown(f"""
 <div class="kpi-grid">
     <div class="kpi-glass-card">
         <div class="kpi-title">Pendiente Marginal (m)</div>
-        <div class="kpi-val" style="color: #38BDF8;">S/ {m:.4f}</div>
+        <div class="kpi-val" style="color: #38BDF8;">{fmt_val(m, 4)}/km</div>
         <div class="kpi-sub">Fórmula: =PENDIENTE()</div>
     </div>
     <div class="kpi-glass-card">
-        <div class="kpi-title">Costo Fijo Base (b)</div>
-        <div class="kpi-val" style="color: #34D399;">S/ {b:.2f}</div>
+        <div class="kpi-title">Intersección Base (b)</div>
+        <div class="kpi-val" style="color: #34D399;">{fmt_val(b, 2)}</div>
         <div class="kpi-sub">Fórmula: =INTERSECCION.EJE()</div>
     </div>
     <div class="kpi-glass-card">
@@ -684,8 +737,8 @@ st.markdown(f"""
     </div>
     <div class="kpi-glass-card">
         <div class="kpi-title">Error Estándar (RMSE)</div>
-        <div class="kpi-val" style="color: #F43F5E;">S/ {rmse:.2f}</div>
-        <div class="kpi-sub">Dispersión media del flete</div>
+        <div class="kpi-val" style="color: #F43F5E;">{fmt_val(rmse, 2)}</div>
+        <div class="kpi-sub">Dispersión media del modelo</div>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -693,12 +746,13 @@ st.markdown(f"""
 # -----------------------------------------------------------------------------
 # 9. PESTAÑAS PRINCIPALES DEL SISTEMA
 # -----------------------------------------------------------------------------
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
-    "📈 Dashboard Interactivo & Plotly",
-    "⚡ Simulador de Escenarios y Riesgo",
-    "📐 Fundamento Matemático (Gauss Paso a Paso)",
-    "📑 Validación Cruzada con Excel",
-    "💾 Exportación & Entregables"
+tab1, tab_comp, tab2, tab3, tab4, tab5 = st.tabs([
+    "📈 Dashboard Interactivo",
+    "⚖️ Los 2 Modelos & Proceso Excel",
+    "⚡ Simulador de Escenarios",
+    "📐 Fundamento Matemático",
+    "📑 Validación vs Excel",
+    "💾 Descargas"
 ])
 
 # =============================================================================
@@ -726,11 +780,11 @@ with tab1:
             <div style="background: rgba(255, 107, 0, 0.12); border: 1px solid rgba(255, 107, 0, 0.4); border-radius: 12px; padding: 14px; margin-top: 14px;">
                 <div style="font-size: 11px; font-weight: 700; color: #FFA057; text-transform: uppercase;">⚡ Proyección Dinámica:</div>
                 <div style="font-family: 'JetBrains Mono', monospace; font-size: 26px; font-weight: 800; color: #FFFFFF; margin: 4px 0;">
-                    S/ {costo_live:,.2f}
+                    {fmt_val(costo_live, 2)}
                 </div>
                 <div style="font-size: 12px; color: #94A3B8;">
-                    &bull; Fijo: <b>S/ {b:,.2f}</b><br>
-                    &bull; Variable ({dist_live:,.0f} km): <b>S/ {(m*dist_live):,.2f}</b>
+                    &bull; Base fija (b): <b>{fmt_val(b, 2)}</b><br>
+                    &bull; Variable ({dist_live:,.0f} km): <b>{fmt_val(m*dist_live, 2)}</b>
                 </div>
             </div>
         </div>
@@ -746,9 +800,9 @@ with tab1:
         hover_text = [
             f"<b>{df_actual.iloc[i]['Ruta'] if 'Ruta' in df_actual.columns else f'Envío {i+1}'}</b><br>"
             f"Distancia (X): {x[i]:,.1f} km<br>"
-            f"Costo Real (Y): S/ {y[i]:,.2f}<br>"
-            f"Ajuste Lineal: S/ {y_pred[i]:,.2f}<br>"
-            f"Residuo: S/ {residuos[i]:,.2f}"
+            f"Valor Real (Y): {fmt_val(y[i], 2)}<br>"
+            f"Ajuste Lineal: {fmt_val(y_pred[i], 2)}<br>"
+            f"Residuo: {fmt_val(residuos[i], 2)}"
             for i in range(n)
         ]
         
@@ -767,7 +821,7 @@ with tab1:
         fig.add_trace(go.Scatter(
             x=x_domain, y=y_domain,
             mode='lines',
-            name=f'Recta: Ŷ = {m:.2f}X + {b:.1f}',
+            name=f'Recta: Ŷ = {m:.4f}X + {b:.2f}',
             line=dict(color='#00E5FF', width=3.5)
         ))
         
@@ -797,7 +851,7 @@ with tab1:
             mode='markers+text',
             name='Punto Simulado en Vivo',
             marker=dict(size=18, color='#FF6B00', symbol='diamond', line=dict(width=2.5, color='#FFFFFF')),
-            text=[f"S/ {costo_live:,.2f}"],
+            text=[fmt_val(costo_live, 2)],
             textposition="top center",
             textfont=dict(size=13, color='#FFA057', family='Plus Jakarta Sans')
         ))
@@ -806,9 +860,9 @@ with tab1:
             paper_bgcolor='rgba(13, 24, 40, 0.75)',
             plot_bgcolor='rgba(7, 14, 25, 0.85)',
             font=dict(color='#94A3B8', family='Plus Jakarta Sans'),
-            title=dict(text="<b>Ajuste de Regresión Lineal: Distancia vs Costo de Transporte</b>", font=dict(color='#FFFFFF', size=16)),
+            title=dict(text=f"<b>Ajuste de Regresión Lineal: Distancia vs {etiqueta_y}</b>", font=dict(color='#FFFFFF', size=16)),
             xaxis=dict(title="Distancia Recorrida (km)", gridcolor='rgba(255,255,255,0.06)', zerolinecolor='rgba(255,255,255,0.1)'),
-            yaxis=dict(title="Costo Total de Transporte (S/)", gridcolor='rgba(255,255,255,0.06)', zerolinecolor='rgba(255,255,255,0.1)'),
+            yaxis=dict(title=etiqueta_y, gridcolor='rgba(255,255,255,0.06)', zerolinecolor='rgba(255,255,255,0.1)'),
             height=510,
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
             margin=dict(l=40, r=40, t=60, b=40)
@@ -821,17 +875,85 @@ with tab1:
     df_preview["Residuo_e"] = np.round(residuos, 2)
     df_preview["Error_%"] = np.round(np.abs(residuos / y) * 100, 2)
     
+    fmt_dict = {
+        col_x_name: "{:,.1f} km",
+        col_y_name: f"{unidad_prefijo}{{:,.2f}}{unidad_sufijo}",
+        "Estimación_Ŷ": f"{unidad_prefijo}{{:,.2f}}{unidad_sufijo}",
+        "Residuo_e": f"{unidad_prefijo}{{:,.2f}}{unidad_sufijo}",
+        "Error_%": "{:.2f}%"
+    }
     st.dataframe(
-        df_preview.style.format({
-            col_x_name: "{:,.1f} km",
-            col_y_name: "S/ {:,.2f}",
-            "Estimación_Ŷ": "S/ {:,.2f}",
-            "Residuo_e": "S/ {:,.2f}",
-            "Error_%": "{:.2f}%"
-        }),
+        df_preview.style.format(fmt_dict),
         use_container_width=True,
         height=320
     )
+
+# =============================================================================
+# TAB COMPARATIVA: LOS 2 MODELOS, PROCESO EXCEL E INTERPRETACIÓN (m y R²)
+# =============================================================================
+with tab_comp:
+    st.subheader("⚖️ Comparativa de los 2 Modelos de Regresión Lineal")
+    if "Costo_Total_Soles" in df_base.columns and "Consumo_Combustible_Gal" in df_base.columns:
+        reg1 = calcular_regresion(df_base["Distancia_km"], df_base["Costo_Total_Soles"])
+        reg2 = calcular_regresion(df_base["Distancia_km"], df_base["Consumo_Combustible_Gal"])
+        
+        c_m1, c_m2 = st.columns(2)
+        with c_m1:
+            st.markdown(f"""
+            <div class="kpi-glass-card">
+                <div class="kpi-title">Modelo 1: Costo Total de Transporte (S/)</div>
+                <div class="kpi-val" style="color:#00E5FF; font-size:1.3rem;">Ŷ₁ = {reg1['m']:.4f}·X + {reg1['b']:.2f}</div>
+                <div class="kpi-sub">Pendiente: S/ {reg1['m']:.4f}/km &nbsp;|&nbsp; R² = {reg1['r2']*100:.2f}%</div>
+            </div>
+            """, unsafe_allow_html=True)
+            fig_m1 = go.Figure()
+            fig_m1.add_trace(go.Scatter(x=df_base["Distancia_km"], y=df_base["Costo_Total_Soles"], mode="markers", name="Datos Reales", marker=dict(color="#38BDF8", size=9)))
+            xs = np.linspace(0, df_base["Distancia_km"].max()*1.05, 50)
+            fig_m1.add_trace(go.Scatter(x=xs, y=reg1["m"]*xs+reg1["b"], mode="lines", name="Recta M1", line=dict(color="#00E5FF", width=3)))
+            fig_m1.update_layout(paper_bgcolor="rgba(13,24,40,0.75)", plot_bgcolor="rgba(7,14,25,0.85)", font=dict(color="#94A3B8"),
+                                 title="Modelo 1: Distancia (km) vs Costo (S/)", xaxis_title="Distancia (km)", yaxis_title="Costo (S/)", height=340)
+            st.plotly_chart(fig_m1, use_container_width=True)
+            
+        with c_m2:
+            st.markdown(f"""
+            <div class="kpi-glass-card">
+                <div class="kpi-title">Modelo 2: Consumo de Combustible (gal)</div>
+                <div class="kpi-val" style="color:#FFA057; font-size:1.3rem;">Ŷ₂ = {reg2['m']:.4f}·X + {reg2['b']:.2f}</div>
+                <div class="kpi-sub">Pendiente: {reg2['m']:.4f} gal/km &nbsp;|&nbsp; R² = {reg2['r2']*100:.2f}%</div>
+            </div>
+            """, unsafe_allow_html=True)
+            fig_m2 = go.Figure()
+            colores_reg = ["#38BDF8" if r == "Costa" else "#FF6B00" for r in df_base["Region"]]
+            fig_m2.add_trace(go.Scatter(x=df_base["Distancia_km"], y=df_base["Consumo_Combustible_Gal"], mode="markers", name="Datos Reales (Costa=Azul, Sierra/Selva=Naranja)", marker=dict(color=colores_reg, size=9)))
+            fig_m2.add_trace(go.Scatter(x=xs, y=reg2["m"]*xs+reg2["b"], mode="lines", name="Recta M2", line=dict(color="#FFA057", width=3)))
+            fig_m2.update_layout(paper_bgcolor="rgba(13,24,40,0.75)", plot_bgcolor="rgba(7,14,25,0.85)", font=dict(color="#94A3B8"),
+                                 title="Modelo 2: Distancia (km) vs Combustible (gal)", xaxis_title="Distancia (km)", yaxis_title="Combustible (gal)", height=340)
+            st.plotly_chart(fig_m2, use_container_width=True)
+
+        st.markdown("### 📊 Interpretación de Resultados usando Pendiente ($m$) y $R^2$")
+        i1, i2 = st.columns(2)
+        with i1:
+            st.info(
+                f"**Modelo 1 (Distancia vs. Costo de Transporte):**\n\n"
+                f"- **Pendiente ($m_1 = \\text{{S/ }}\\,{reg1['m']:.4f}/\\text{{km}}$):** Positiva. Por cada kilómetro adicional recorrido, el costo del flete se incrementa en promedio **S/ {reg1['m']:.2f}**, sobre un costo fijo base de despacho de **S/ {reg1['b']:.2f}**.\n"
+                f"- **Coeficiente $R^2_1 = {reg1['r2']:.4f}$ ({reg1['r2']*100:.2f}%):** Ajuste lineal prácticamente perfecto. El **{reg1['r2']*100:.2f}%** de la variabilidad del costo total se explica por la distancia; solo el **{(1-reg1['r2'])*100:.2f}%** corresponde a variaciones menores."
+            )
+        with i2:
+            st.warning(
+                f"**Modelo 2 (Distancia vs. Consumo de Combustible):**\n\n"
+                f"- **Pendiente ($m_2 = {reg2['m']:.4f}\\,\\text{{gal/km}}$):** Positiva. Cada kilómetro adicional demanda en promedio **{reg2['m']:.4f} galones de diésel** ({reg2['m']*100:.2f} gal cada 100 km, rendimiento medio de **{1/reg2['m']:.2f} km/gal**), partiendo de **{reg2['b']:.2f} gal** de consumo base inicial.\n"
+                f"- **Coeficiente $R^2_2 = {reg2['r2']:.4f}$ ({reg2['r2']*100:.2f}%):** Ajuste lineal muy fuerte. El **{reg2['r2']*100:.2f}%** del consumo es explicado por la distancia, mientras que el **{(1-reg2['r2'])*100:.2f}%** restante se debe a la **topografía andina** (mayor esfuerzo del motor en rutas de Sierra/Selva frente a Costa)."
+            )
+
+        st.markdown("### 📗 Procesos Ejecutados para Desarrollar los Modelos Asistidos por Excel")
+        st.markdown("""
+        1. **Estructuración y depuración de datos:** Se organizaron los 25 registros en dos hojas independientes (`Modelo 1 - Costo Transporte` y `Modelo 2 - Combustible`) colocando la variable independiente $X$ (`D7:D31`) y dependiente $Y$ (`E7:E31`).
+        2. **Cálculo automatizado de sumatorias discretas (MCO):** Se generaron columnas auxiliares formuladas para $X^2$ (`=D7^2`), $Y^2$ (`=E7^2`) y $X\\cdot Y$ (`=D7*E7`), consolidando las sumatorias en la fila 32 con `=SUMA(...)`.
+        3. **Obtención de parámetros mediante funciones nativas de Excel:** Se aplicaron `=PENDIENTE(E7:E31; D7:D31)`, `=INTERSECCION.EJE(E7:E31; D7:D31)`, `=COEFICIENTE.R2(E7:E31; D7:D31)`, `=COEF.DE.CORREL(D7:D31; E7:E31)` y `=ERROR.TIPICO.XY(E7:E31; D7:D31)`.
+        4. **Cálculo de estimaciones y residuos:** En cada fila se calculó la recta ajustada $\\hat{Y}$ con referencia absoluta (`=$M$8*D7+$M$9`) y el error residual (`=E7-I7`).
+        5. **Simulador predictivo dinámico:** Se habilitó una celda de entrada editable conectada a `=PRONOSTICO.LINEAL(M17; E7:E31; D7:D31)` para proyectar cualquier ruta nueva en tiempo real.
+        6. **Visualización y hoja comparativa:** Se insertaron gráficos de dispersión XY con línea de tendencia lineal (mostrando ecuación y $R^2$) y una tercera hoja `Resumen Comparativo` enlazada dinámicamente.
+        """)
 
 # =============================================================================
 # TAB 2: SIMULADOR DE ESCENARIOS Y RIESGO
