@@ -203,42 +203,86 @@ st.markdown("""
         margin-top: 4px;
     }
 
-    /* Pestañas personalizadas (Tabs) */
+    /* Pestañas personalizadas (Tabs) con alto contraste */
     .stTabs [data-baseweb="tab-list"] {
         gap: 8px;
-        background-color: rgba(10, 18, 30, 0.6);
-        padding: 6px;
+        background-color: rgba(13, 24, 40, 0.85);
+        padding: 8px;
         border-radius: 12px;
-        border: 1px solid rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.12);
     }
 
     .stTabs [data-baseweb="tab"] {
         height: 44px;
         border-radius: 8px;
         font-weight: 600;
-        color: #94A3B8;
+        color: #E2E8F0 !important;
         padding: 0 18px;
         transition: all 0.25s ease;
-        border: none;
-        background-color: transparent;
+        border: 1px solid transparent;
+        background-color: rgba(255, 255, 255, 0.03);
+    }
+
+    .stTabs [data-baseweb="tab"] p,
+    .stTabs [data-baseweb="tab"] span,
+    .stTabs [data-baseweb="tab"] div {
+        color: #E2E8F0 !important;
+        font-weight: 600 !important;
     }
 
     .stTabs [data-baseweb="tab"]:hover {
-        color: #FFFFFF;
-        background-color: rgba(255, 255, 255, 0.05);
+        color: #FFFFFF !important;
+        background-color: rgba(56, 189, 248, 0.12) !important;
+        border-color: rgba(56, 189, 248, 0.25);
+    }
+
+    .stTabs [data-baseweb="tab"]:hover p,
+    .stTabs [data-baseweb="tab"]:hover span,
+    .stTabs [data-baseweb="tab"]:hover div {
+        color: #FFFFFF !important;
     }
 
     .stTabs [aria-selected="true"] {
-        background: linear-gradient(135deg, rgba(37, 99, 235, 0.3) 0%, rgba(0, 229, 255, 0.2) 100%) !important;
+        background: linear-gradient(135deg, rgba(37, 99, 235, 0.4) 0%, rgba(0, 229, 255, 0.25) 100%) !important;
         color: #38BDF8 !important;
-        border: 1px solid rgba(0, 229, 255, 0.4) !important;
-        box-shadow: 0 4px 15px rgba(0, 229, 255, 0.15);
+        border: 1px solid rgba(0, 229, 255, 0.55) !important;
+        box-shadow: 0 4px 15px rgba(0, 229, 255, 0.2);
+    }
+
+    .stTabs [aria-selected="true"] p,
+    .stTabs [aria-selected="true"] span,
+    .stTabs [aria-selected="true"] div {
+        color: #FFFFFF !important;
+        font-weight: 700 !important;
+    }
+
+    .stTabs [data-baseweb="tab-highlight"] {
+        background-color: #00E5FF !important;
+    }
+
+    .stTabs [data-baseweb="tab-border"] {
+        background-color: rgba(255, 255, 255, 0.1) !important;
+    }
+
+    /* Garantizar contraste alto en textos generales, etiquetas y métricas */
+    .stApp h1, .stApp h2, .stApp h3, .stApp h4,
+    .stMarkdown p, .stMarkdown li,
+    [data-testid="stWidgetLabel"] p,
+    [data-testid="stMetricLabel"] p,
+    [data-testid="stMetricValue"] {
+        color: #F8FAFC !important;
     }
 
     /* Estilo de la Sidebar */
     [data-testid="stSidebar"] {
         background: linear-gradient(180deg, #070E1A 0%, #040810 100%);
-        border-right: 1px solid rgba(255, 255, 255, 0.07);
+        border-right: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    [data-testid="stSidebar"] p,
+    [data-testid="stSidebar"] label,
+    [data-testid="stSidebar"] span {
+        color: #E2E8F0 !important;
     }
 
     /* Sliders estilizados */

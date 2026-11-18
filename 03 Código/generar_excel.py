@@ -204,6 +204,7 @@ def construir_hoja_modelo(wb, ws, df, titulo_modelo, col_y, label_y, unidad_y,
     ws.cell(row=sim_r2, column=12, value=f"Pronóstico {unidad_y} [PRONOSTICO.LINEAL]:").font = font_bold
     ws.cell(row=sim_r2, column=12).border = border_sim
     ws.cell(row=sim_r2, column=12).fill = fill_sim
+    pred_cell = ws.cell(row=sim_r2, column=13, value=f"=FORECAST.LINEAR(M{sim_r1}, E{data_start}:E{data_end}, D{data_start}:D{data_end})")
     pred_cell = ws.cell(row=sim_r2, column=13, value=f"=_xlfn.FORECAST.LINEAR(M{sim_r1}, E{data_start}:E{data_end}, D{data_start}:D{data_end})")
     pred_cell.font = Font(name="Segoe UI", size=14, bold=True, color="B45309")
     pred_cell.number_format = fmt_y
@@ -272,6 +273,7 @@ def construir_hoja_modelo(wb, ws, df, titulo_modelo, col_y, label_y, unidad_y,
     # Anchos de columnas
     col_widths = {
         "A": 12, "B": 21, "C": 10, "D": 17, "E": 19, "F": 13, "G": 15, "H": 16, "I": 17, "J": 16,
+        "K": 3, "L": 38, "M": 18, "N": 28, "O": 16
         "K": 3, "L": 45, "M": 19, "N": 34, "O": 18
     }
     for col_letter, width in col_widths.items():
@@ -332,6 +334,14 @@ def construir_hoja_comparativa(wb):
     rows = [
         ("Variable Independiente (X)", "Rango D7:D31", "Distancia Recorrida (km)", "Distancia Recorrida (km)", "Misma variable predictora en las 25 rutas"),
         ("Variable Dependiente (Y)", "Rango E7:E31", "Costo Total de Transporte (S/)", "Consumo de Combustible (gal)", "Evalúa impacto económico y energético"),
+        ("Observaciones (n)", "=CONTAR(X)", f"={s1}!M7", f"={s2}!M7", "Muestra homogénea de 25 rutas nacionales"),
+        ("Pendiente (m)", "=PENDIENTE(Y, X)", f"={s1}!M8", f"={s2}!M8", "M1: +S/ 4.78 por km | M2: +0.1293 gal por km (~7.74 km/gal)"),
+        ("Intersección (b)", "=INTERSECCION.EJE(Y, X)", f"={s1}!M9", f"={s2}!M9", "M1: S/ 253.94 costo fijo | M2: 9.71 gal consumo base"),
+        ("Coef. Determinación (R²)", "=COEFICIENTE.R2(Y, X)", f"={s1}!M10", f"={s2}!M10", "M1: 99.98% (casi perfecto) vs M2: 95.13% (afectado por topografía)"),
+        ("Correlación Pearson (r)", "=COEF.DE.CORREL(X, Y)", f"={s1}!M11", f"={s2}!M11", "Correlación positiva muy fuerte en ambos modelos"),
+        ("Error Típico Estándar", "=ERROR.TIPICO.XY(Y, X)", f"={s1}!M12", f"={s2}!M12", "Dispersión promedio respecto a la recta ajustada"),
+        ("Proyección a 500 km", "=PRONOSTICO.LINEAL(500, Y, X)", f"=FORECAST.LINEAR(500, {s1}!E7:E31, {s1}!D7:D31)", f"=FORECAST.LINEAR(500, {s2}!E7:E31, {s2}!D7:D31)", "Estimación conjunta para un flete de 500 km"),
+        ("Proyección a 1,000 km", "=PRONOSTICO.LINEAL(1000, Y, X)", f"=FORECAST.LINEAR(1000, {s1}!E7:E31, {s1}!D7:D31)", f"=FORECAST.LINEAR(1000, {s2}!E7:E31, {s2}!D7:D31)", "Estimación conjunta para ruta larga (ej. Lima - Arequipa/Piura)")
         ("Observaciones (n)", "=CONTAR(D7:D31)", f"={s1}!M7", f"={s2}!M7", "Muestra homogénea de 25 rutas nacionales"),
         ("Pendiente (m)", "=PENDIENTE(E7:E31; D7:D31)", f"={s1}!M8", f"={s2}!M8", "M1: +S/ 4.78 por km | M2: +0.1293 gal por km (~7.74 km/gal)"),
         ("Intersección (b)", "=INTERSECCION.EJE(E7:E31; D7:D31)", f"={s1}!M9", f"={s2}!M9", "M1: S/ 253.94 costo fijo | M2: 9.71 gal consumo base"),
@@ -347,8 +357,10 @@ def construir_hoja_comparativa(wb):
 
     for idx, row_vals in enumerate(rows):
         r = 5 + idx
+        ws.row_dimensions[r].height = 24
         ws.row_dimensions[r].height = 30
         for c_idx, val in enumerate(row_vals, start=1):
+            cell = ws.cell(row=r, column=c_idx, value=val)
             cell = ws.cell(row=r, column=c_idx)
             cell.value = val
             # Columna B es texto descriptivo de la fórmula (forzar tipo texto para evitar #¿NOMBRE?)
@@ -359,6 +371,7 @@ def construir_hoja_comparativa(wb):
             else:
                 cell.font = font_bold if c_idx == 1 else font_data
             cell.border = border_all
+            cell.font = font_bold if c_idx == 1 else font_data
             if idx % 2 == 1:
                 cell.fill = fill_alt
             if c_idx == 3 and fmts_m1[idx]:
@@ -370,6 +383,7 @@ def construir_hoja_comparativa(wb):
             else:
                 cell.alignment = Alignment(vertical="center", wrap_text=True)
 
+    widths = {"A": 26, "B": 30, "C": 28, "D": 30, "E": 56}
     widths = {"A": 26, "B": 40, "C": 28, "D": 30, "E": 60}
     for col, w in widths.items():
         ws.column_dimensions[col].width = w
