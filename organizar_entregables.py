@@ -10,7 +10,6 @@ def organizar_entregables():
     archivos_codigo = [
         "app.py",
         "generar_excel.py",
-        "generar_datos.py",
         "Sistema_Regresion_Logistica.xlsx",
         "datos_logisticos.csv",
         "requirements.txt",
