@@ -308,25 +308,18 @@ st.markdown("""
 # -----------------------------------------------------------------------------
 # 3. CARGA Y GESTIÓN DE DATOS
 # -----------------------------------------------------------------------------
-@st.cache_data
 def cargar_datos_base():
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    csv_path = os.path.join(base_dir, "datos_logisticos.csv")
+    if os.path.exists(csv_path):
+        return pd.read_csv(csv_path)
     if os.path.exists("datos_logisticos.csv"):
         return pd.read_csv("datos_logisticos.csv")
-    else:
-        rutas = [
-            ("Lima - Chosica", "Sierra", 45, 466.89, 10.65),
-            ("Lima - Cañete", "Costa", 140, 921.23, 21.85),
-            ("Lima - Trujillo", "Costa", 560, 2927.57, 75.40),
-            ("Lima - Cusco", "Sierra", 1100, 5543.83, 169.10),
-            ("Lima - Tacna", "Costa", 1295, 6392.84, 166.50)
-        ]
-        return pd.DataFrame([
-            {
-                "ID_Envio": f"ENV-{i+1:03d}", "Ruta": r[0], "Region": r[1],
-                "Distancia_km": r[2], "Costo_Total_Soles": r[3], "Consumo_Combustible_Gal": r[4]
-            }
-            for i, r in enumerate(rutas)
-        ])
+    # Si se ejecuta desde un subdirectorio, buscar en directorio padre
+    parent_csv = os.path.join(base_dir, "..", "datos_logisticos.csv")
+    if os.path.exists(parent_csv):
+        return pd.read_csv(parent_csv)
+    raise FileNotFoundError("No se encontró el archivo 'datos_logisticos.csv'.")
 
 def calcular_regresion(x_arr, y_arr):
     x_v = np.asarray(x_arr, dtype=float)
