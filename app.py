@@ -368,7 +368,7 @@ st.sidebar.markdown("""
 
 modo_datos = st.sidebar.radio(
     "Fuente de Información:",
-    ["Dataset Oficial (25 Rutas Perú)", "Subir Archivo (CSV / Excel)", "Generador Sintético Dinámico"]
+    ["Dataset Oficial (23 Rutas Perú)", "Subir Archivo (CSV / Excel)", "Generador Sintético Dinámico"]
 )
 
 modelo_activo = "Modelo 1: Costo de Transporte (S/)"
@@ -376,7 +376,7 @@ unidad_prefijo = "S/ "
 unidad_sufijo = ""
 etiqueta_y = "Costo Total de Transporte (S/)"
 
-if modo_datos == "Dataset Oficial (25 Rutas Perú)":
+if "Dataset Oficial" in modo_datos:
     df_actual = df_base.copy()
     col_x_name = "Distancia_km"
     modelo_activo = st.sidebar.selectbox(
@@ -941,12 +941,15 @@ with tab_comp:
         reg1 = calcular_regresion(df_base["Distancia_km"], df_base["Costo_Total_Soles"])
         reg2 = calcular_regresion(df_base["Distancia_km"], df_base["Consumo_Combustible_Gal"])
         
+        b_str1 = f"+ {reg1['b']:.2f}" if reg1['b'] >= 0 else f"- {abs(reg1['b']):.2f}"
+        b_str2 = f"+ {reg2['b']:.2f}" if reg2['b'] >= 0 else f"- {abs(reg2['b']):.2f}"
+
         c_m1, c_m2 = st.columns(2)
         with c_m1:
             st.markdown(f"""
             <div class="kpi-glass-card">
                 <div class="kpi-title">Modelo 1: Costo Total de Transporte (S/)</div>
-                <div class="kpi-val" style="color:#00E5FF; font-size:1.3rem;">Ŷ₁ = {reg1['m']:.4f}·X + {reg1['b']:.2f}</div>
+                <div class="kpi-val" style="color:#00E5FF; font-size:1.3rem;">Ŷ₁ = {reg1['m']:.4f}·X {b_str1}</div>
                 <div class="kpi-sub">Pendiente: S/ {reg1['m']:.4f}/km &nbsp;|&nbsp; R² = {reg1['r2']*100:.2f}%</div>
             </div>
             """, unsafe_allow_html=True)
@@ -962,13 +965,13 @@ with tab_comp:
             st.markdown(f"""
             <div class="kpi-glass-card">
                 <div class="kpi-title">Modelo 2: Consumo de Combustible (gal)</div>
-                <div class="kpi-val" style="color:#FFA057; font-size:1.3rem;">Ŷ₂ = {reg2['m']:.4f}·X + {reg2['b']:.2f}</div>
+                <div class="kpi-val" style="color:#FFA057; font-size:1.3rem;">Ŷ₂ = {reg2['m']:.4f}·X {b_str2}</div>
                 <div class="kpi-sub">Pendiente: {reg2['m']:.4f} gal/km &nbsp;|&nbsp; R² = {reg2['r2']*100:.2f}%</div>
             </div>
             """, unsafe_allow_html=True)
             fig_m2 = go.Figure()
-            colores_reg = ["#38BDF8" if r == "Costa" else "#FF6B00" for r in df_base["Region"]]
-            fig_m2.add_trace(go.Scatter(x=df_base["Distancia_km"], y=df_base["Consumo_Combustible_Gal"], mode="markers", name="Datos Reales (Costa=Azul, Sierra/Selva=Naranja)", marker=dict(color=colores_reg, size=9)))
+            colores_reg = ["#38BDF8" if r == "Costa" else ("#10B981" if r == "Selva" else "#FF6B00") for r in df_base["Region"]]
+            fig_m2.add_trace(go.Scatter(x=df_base["Distancia_km"], y=df_base["Consumo_Combustible_Gal"], mode="markers", name="Datos Reales (Costa=Azul, Sierra=Naranja, Selva=Verde)", marker=dict(color=colores_reg, size=9)))
             fig_m2.add_trace(go.Scatter(x=xs, y=reg2["m"]*xs+reg2["b"], mode="lines", name="Recta M2", line=dict(color="#FFA057", width=3)))
             fig_m2.update_layout(paper_bgcolor="rgba(13,24,40,0.75)", plot_bgcolor="rgba(7,14,25,0.85)", font=dict(color="#94A3B8"),
                                  title="Modelo 2: Distancia (km) vs Combustible (gal)", xaxis_title="Distancia (km)", yaxis_title="Combustible (gal)", height=340)
@@ -979,24 +982,24 @@ with tab_comp:
         with i1:
             st.info(
                 f"**Modelo 1 (Distancia vs. Costo de Transporte):**\n\n"
-                f"- **Pendiente ($m_1 = \\text{{S/ }}\\,{reg1['m']:.4f}/\\text{{km}}$):** Positiva. Por cada kilómetro adicional recorrido, el costo del flete se incrementa en promedio **S/ {reg1['m']:.2f}**, sobre un costo fijo base de despacho de **S/ {reg1['b']:.2f}**.\n"
-                f"- **Coeficiente $R^2_1 = {reg1['r2']:.4f}$ ({reg1['r2']*100:.2f}%):** Ajuste lineal prácticamente perfecto. El **{reg1['r2']*100:.2f}%** de la variabilidad del costo total se explica por la distancia; solo el **{(1-reg1['r2'])*100:.2f}%** corresponde a variaciones menores."
+                f"- **Pendiente ($m_1 = \\text{{S/ }}\\,{reg1['m']:.4f}/\\text{{km}}$):** Positiva. Por cada kilómetro adicional recorrido, el flete se incrementa en promedio **S/ {reg1['m']:.4f}** (~S/ {reg1['m']*100:.2f} por cada 100 km), sobre un ajuste base de **S/ {reg1['b']:.2f}**.\n"
+                f"- **Coeficiente $R^2_1 = {reg1['r2']:.4f}$ ({reg1['r2']*100:.2f}%):** Ajuste lineal muy fuerte ($r = {reg1['r']:.4f}$). El **{reg1['r2']*100:.2f}%** de la variabilidad del costo se explica directamente por la distancia. El **{(1-reg1['r2'])*100:.2f}%** restante representa factores reales como peajes regionales, sobrecostos por relieve andino y pesos de carga heterogéneos."
             )
         with i2:
             st.warning(
                 f"**Modelo 2 (Distancia vs. Consumo de Combustible):**\n\n"
-                f"- **Pendiente ($m_2 = {reg2['m']:.4f}\\,\\text{{gal/km}}$):** Positiva. Cada kilómetro adicional demanda en promedio **{reg2['m']:.4f} galones de diésel** ({reg2['m']*100:.2f} gal cada 100 km, rendimiento medio de **{1/reg2['m']:.2f} km/gal**), partiendo de **{reg2['b']:.2f} gal** de consumo base inicial.\n"
-                f"- **Coeficiente $R^2_2 = {reg2['r2']:.4f}$ ({reg2['r2']*100:.2f}%):** Ajuste lineal muy fuerte. El **{reg2['r2']*100:.2f}%** del consumo es explicado por la distancia, mientras que el **{(1-reg2['r2'])*100:.2f}%** restante se debe a la **topografía andina** (mayor esfuerzo del motor en rutas de Sierra/Selva frente a Costa)."
+                f"- **Pendiente ($m_2 = {reg2['m']:.4f}\\,\\text{{gal/km}}$):** Positiva. Cada kilómetro adicional demanda en promedio **{reg2['m']:.4f} galones de diésel** ({reg2['m']*100:.2f} gal cada 100 km, rendimiento medio de **{1/reg2['m']:.2f} km/gal**).\n"
+                f"- **Coeficiente $R^2_2 = {reg2['r2']:.4f}$ ({reg2['r2']*100:.2f}%):** Ajuste lineal altamente representativo ($r = {reg2['r']:.4f}$). El **{reg2['r2']*100:.2f}%** del consumo está gobernado por el kilometraje, mientras que el **{(1-reg2['r2'])*100:.2f}%** de dispersión refleja con fidelidad el relieve peruano: las rutas hacia la Sierra (cruces cordilleranos como Ticlio a 4,818 msnm) y Selva exigen un consumo de combustible notablemente mayor que las autopistas planas de la Costa."
             )
 
         st.markdown("### 📗 Procesos Ejecutados para Desarrollar los Modelos Asistidos por Excel")
-        st.markdown("""
-        1. **Estructuración y depuración de datos:** Se organizaron los 25 registros en dos hojas independientes (`Modelo 1 - Costo Transporte` y `Modelo 2 - Combustible`) colocando la variable independiente $X$ (`D7:D31`) y dependiente $Y$ (`E7:E31`).
-        2. **Cálculo automatizado de sumatorias discretas (MCO):** Se generaron columnas auxiliares formuladas para $X^2$ (`=D7^2`), $Y^2$ (`=E7^2`) y $X\\cdot Y$ (`=D7*E7`), consolidando las sumatorias en la fila 32 con `=SUMA(...)`.
-        3. **Obtención de parámetros mediante funciones nativas de Excel:** Se aplicaron `=PENDIENTE(E7:E31; D7:D31)`, `=INTERSECCION.EJE(E7:E31; D7:D31)`, `=COEFICIENTE.R2(E7:E31; D7:D31)`, `=COEF.DE.CORREL(D7:D31; E7:E31)` y `=ERROR.TIPICO.XY(E7:E31; D7:D31)`.
+        st.markdown(f"""
+        1. **Estructuración y depuración de datos:** Se organizaron los {len(df_base)} registros de rutas reales en dos hojas independientes (`Modelo 1 - Costo Transporte` y `Modelo 2 - Combustible`) colocando la variable independiente $X$ (`D7:D{6+len(df_base)}`) y dependiente $Y$ (`E7:E{6+len(df_base)}`).
+        2. **Cálculo automatizado de sumatorias discretas (MCO):** Se generaron columnas auxiliares formuladas para $X^2$ (`=D7^2`), $Y^2$ (`=E7^2`) y $X\\cdot Y$ (`=D7*E7`), consolidando las sumatorias en la fila {7+len(df_base)} con `=SUM(...)`.
+        3. **Obtención de parámetros mediante funciones nativas de Excel:** Se aplicaron `=PENDIENTE(...)`, `=INTERSECCION.EJE(...)`, `=COEFICIENTE.R2(...)`, `=COEF.DE.CORREL(...)` y `=ERROR.TIPICO.XY(...)` con sintaxis nativa de hojas de cálculo.
         4. **Cálculo de estimaciones y residuos:** En cada fila se calculó la recta ajustada $\\hat{Y}$ con referencia absoluta (`=$M$8*D7+$M$9`) y el error residual (`=E7-I7`).
-        5. **Simulador predictivo dinámico:** Se habilitó una celda de entrada editable conectada a `=PRONOSTICO.LINEAL(M17; E7:E31; D7:D31)` para proyectar cualquier ruta nueva en tiempo real.
-        6. **Visualización y hoja comparativa:** Se insertaron gráficos de dispersión XY con línea de tendencia lineal (mostrando ecuación y $R^2$) y una tercera hoja `Resumen Comparativo` enlazada dinámicamente.
+        5. **Simulador predictivo dinámico:** Se habilitó una celda de entrada editable conectada a `PRONOSTICO.LINEAL` para proyectar cualquier kilometraje en tiempo real.
+        6. **Visualización y hoja comparativa:** Se insertaron gráficos de dispersión XY con línea de tendencia lineal y una tercera hoja `Resumen Comparativo` vinculada dinámicamente mediante fórmulas.
         """)
 
 # =============================================================================
@@ -1172,7 +1175,7 @@ with tab5:
                 )
     with d2:
         st.markdown("#### 📄 Dataset en CSV")
-        st.write("Conjunto de datos estructurado con las 25 rutas logísticas analizadas.")
+        st.write("Conjunto de datos estructurado con las 23 rutas logísticas analizadas.")
         csv_bytes = df_actual.to_csv(index=False).encode('utf-8-sig')
         st.download_button(
             "📥 Descargar Dataset (.csv)",

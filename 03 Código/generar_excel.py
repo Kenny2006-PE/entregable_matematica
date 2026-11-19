@@ -90,9 +90,9 @@ def construir_hoja_modelo(wb, ws, df, titulo_modelo, col_y, label_y, unidad_y,
     data_start = 7
     for i, row in df.iterrows():
         r = data_start + i
-        ws.cell(row=r, column=1, value=row["ID_Envio"]).alignment = Alignment(horizontal="center")
-        ws.cell(row=r, column=2, value=row["Ruta"]).alignment = Alignment(horizontal="left")
-        ws.cell(row=r, column=3, value=row["Region"]).alignment = Alignment(horizontal="center")
+        ws.cell(row=r, column=1, value=str(row["ID_Envio"])).alignment = Alignment(horizontal="center")
+        ws.cell(row=r, column=2, value=str(row["Ruta"])).alignment = Alignment(horizontal="left")
+        ws.cell(row=r, column=3, value=str(row["Region"])).alignment = Alignment(horizontal="center")
         ws.cell(row=r, column=4, value=float(row["Distancia_km"])).number_format = "#,##0"
         ws.cell(row=r, column=5, value=float(row[col_y])).number_format = fmt_y
 
@@ -167,10 +167,10 @@ def construir_hoja_modelo(wb, ws, df, titulo_modelo, col_y, label_y, unidad_y,
         ws.cell(row=kr, column=15).border = border_all
         ws.row_dimensions[kr].height = 22
 
-    # Ecuación del Modelo (M8 = m, M9 = b)
+    # Ecuación del Modelo (M8 = m, M9 = b) con manejo dinámico de signo para b
     eq_row = kpi_start + len(kpis) + 1  # Fila 14
     ws.merge_cells(start_row=eq_row, start_column=12, end_row=eq_row, end_column=15)
-    ws.cell(row=eq_row, column=12, value=f'="ECUACIÓN DEL MODELO:   Ŷ = " & TEXT(M8,"0.0000") & " · X + " & TEXT(M9,"0.00") & " ({unidad_y})"')
+    ws.cell(row=eq_row, column=12, value=f'="ECUACIÓN DEL MODELO:   Ŷ = " & TEXT(M8,"0.0000") & " · X " & IF(M9>=0, "+ ", "- ") & TEXT(ABS(M9),"0.00") & " ({unidad_y})"')
     ws.cell(row=eq_row, column=12).font = font_formula
     ws.cell(row=eq_row, column=12).fill = PatternFill(start_color="D1FAE5", end_color="D1FAE5", fill_type="solid")
     ws.cell(row=eq_row, column=12).alignment = Alignment(horizontal="center", vertical="center")
@@ -204,7 +204,6 @@ def construir_hoja_modelo(wb, ws, df, titulo_modelo, col_y, label_y, unidad_y,
     ws.cell(row=sim_r2, column=12, value=f"Pronóstico {unidad_y} [PRONOSTICO.LINEAL]:").font = font_bold
     ws.cell(row=sim_r2, column=12).border = border_sim
     ws.cell(row=sim_r2, column=12).fill = fill_sim
-    pred_cell = ws.cell(row=sim_r2, column=13, value=f"=FORECAST.LINEAR(M{sim_r1}, E{data_start}:E{data_end}, D{data_start}:D{data_end})")
     pred_cell = ws.cell(row=sim_r2, column=13, value=f"=_xlfn.FORECAST.LINEAR(M{sim_r1}, E{data_start}:E{data_end}, D{data_start}:D{data_end})")
     pred_cell.font = Font(name="Segoe UI", size=14, bold=True, color="B45309")
     pred_cell.number_format = fmt_y
@@ -272,15 +271,14 @@ def construir_hoja_modelo(wb, ws, df, titulo_modelo, col_y, label_y, unidad_y,
 
     # Anchos de columnas
     col_widths = {
-        "A": 12, "B": 21, "C": 10, "D": 17, "E": 19, "F": 13, "G": 15, "H": 16, "I": 17, "J": 16,
-        "K": 3, "L": 38, "M": 18, "N": 28, "O": 16
+        "A": 12, "B": 24, "C": 12, "D": 18, "E": 20, "F": 14, "G": 16, "H": 18, "I": 18, "J": 16,
         "K": 3, "L": 45, "M": 19, "N": 34, "O": 18
     }
     for col_letter, width in col_widths.items():
         ws.column_dimensions[col_letter].width = width
 
 
-def construir_hoja_comparativa(wb):
+def construir_hoja_comparativa(wb, n=23):
     ws = wb.create_sheet(title="Resumen Comparativo")
     ws.views.sheetView[0].showGridLines = True
 
@@ -330,26 +328,20 @@ def construir_hoja_comparativa(wb):
 
     s1 = "'Modelo 1 - Costo Transporte'"
     s2 = "'Modelo 2 - Combustible'"
+    d_start = 7
+    d_end = d_start + n - 1
 
     rows = [
-        ("Variable Independiente (X)", "Rango D7:D31", "Distancia Recorrida (km)", "Distancia Recorrida (km)", "Misma variable predictora en las 25 rutas"),
-        ("Variable Dependiente (Y)", "Rango E7:E31", "Costo Total de Transporte (S/)", "Consumo de Combustible (gal)", "Evalúa impacto económico y energético"),
-        ("Observaciones (n)", "=CONTAR(X)", f"={s1}!M7", f"={s2}!M7", "Muestra homogénea de 25 rutas nacionales"),
-        ("Pendiente (m)", "=PENDIENTE(Y, X)", f"={s1}!M8", f"={s2}!M8", "M1: +S/ 4.78 por km | M2: +0.1293 gal por km (~7.74 km/gal)"),
-        ("Intersección (b)", "=INTERSECCION.EJE(Y, X)", f"={s1}!M9", f"={s2}!M9", "M1: S/ 253.94 costo fijo | M2: 9.71 gal consumo base"),
-        ("Coef. Determinación (R²)", "=COEFICIENTE.R2(Y, X)", f"={s1}!M10", f"={s2}!M10", "M1: 99.98% (casi perfecto) vs M2: 95.13% (afectado por topografía)"),
-        ("Correlación Pearson (r)", "=COEF.DE.CORREL(X, Y)", f"={s1}!M11", f"={s2}!M11", "Correlación positiva muy fuerte en ambos modelos"),
-        ("Error Típico Estándar", "=ERROR.TIPICO.XY(Y, X)", f"={s1}!M12", f"={s2}!M12", "Dispersión promedio respecto a la recta ajustada"),
-        ("Proyección a 500 km", "=PRONOSTICO.LINEAL(500, Y, X)", f"=FORECAST.LINEAR(500, {s1}!E7:E31, {s1}!D7:D31)", f"=FORECAST.LINEAR(500, {s2}!E7:E31, {s2}!D7:D31)", "Estimación conjunta para un flete de 500 km"),
-        ("Proyección a 1,000 km", "=PRONOSTICO.LINEAL(1000, Y, X)", f"=FORECAST.LINEAR(1000, {s1}!E7:E31, {s1}!D7:D31)", f"=FORECAST.LINEAR(1000, {s2}!E7:E31, {s2}!D7:D31)", "Estimación conjunta para ruta larga (ej. Lima - Arequipa/Piura)")
-        ("Observaciones (n)", "=CONTAR(D7:D31)", f"={s1}!M7", f"={s2}!M7", "Muestra homogénea de 25 rutas nacionales"),
-        ("Pendiente (m)", "=PENDIENTE(E7:E31; D7:D31)", f"={s1}!M8", f"={s2}!M8", "M1: +S/ 4.78 por km | M2: +0.1293 gal por km (~7.74 km/gal)"),
-        ("Intersección (b)", "=INTERSECCION.EJE(E7:E31; D7:D31)", f"={s1}!M9", f"={s2}!M9", "M1: S/ 253.94 costo fijo | M2: 9.71 gal consumo base"),
-        ("Coef. Determinación (R²)", "=COEFICIENTE.R2(E7:E31; D7:D31)", f"={s1}!M10", f"={s2}!M10", "M1: 99.98% (casi perfecto) vs M2: 95.13% (afectado por topografía)"),
-        ("Correlación Pearson (r)", "=COEF.DE.CORREL(D7:D31; E7:E31)", f"={s1}!M11", f"={s2}!M11", "Correlación positiva muy fuerte en ambos modelos"),
-        ("Error Típico Estándar", "=ERROR.TIPICO.XY(E7:E31; D7:D31)", f"={s1}!M12", f"={s2}!M12", "Dispersión promedio respecto a la recta ajustada"),
-        ("Proyección a 500 km", "=PRONOSTICO.LINEAL(500; E7:E31; D7:D31)", f"=_xlfn.FORECAST.LINEAR(500, {s1}!E7:E31, {s1}!D7:D31)", f"=_xlfn.FORECAST.LINEAR(500, {s2}!E7:E31, {s2}!D7:D31)", "Estimación conjunta para un flete de 500 km"),
-        ("Proyección a 1,000 km", "=PRONOSTICO.LINEAL(1000; E7:E31; D7:D31)", f"=_xlfn.FORECAST.LINEAR(1000, {s1}!E7:E31, {s1}!D7:D31)", f"=_xlfn.FORECAST.LINEAR(1000, {s2}!E7:E31, {s2}!D7:D31)", "Estimación conjunta para ruta larga (ej. Lima - Arequipa/Piura)")
+        ("Variable Independiente (X)", f"Rango D{d_start}:D{d_end}", "Distancia Recorrida (km)", "Distancia Recorrida (km)", f"Misma variable predictora en las {n} rutas analizadas"),
+        ("Variable Dependiente (Y)", f"Rango E{d_start}:E{d_end}", "Costo Total de Transporte (S/)", "Consumo de Combustible (gal)", "Evalúa impacto económico (flete) y consumo energético"),
+        ("Observaciones (n)", f"CONTAR(D{d_start}:D{d_end})", f"={s1}!M7", f"={s2}!M7", f"Muestra representativa de {n} rutas nacionales (Costa, Sierra y Selva)"),
+        ("Pendiente (m)", f"PENDIENTE(E{d_start}:E{d_end}; D{d_start}:D{d_end})", f"={s1}!M8", f"={s2}!M8", "M1: +S/ 0.3825 por km | M2: +0.1686 gal por km (~5.93 km/gal)"),
+        ("Intersección (b)", f"INTERSECCION.EJE(E{d_start}:E{d_end}; D{d_start}:D{d_end})", f"={s1}!M9", f"={s2}!M9", "M1: -S/ 24.64 ajuste base | M2: -0.11 gal consumo base inicial"),
+        ("Coef. Determinación (R²)", f"COEFICIENTE.R2(E{d_start}:E{d_end}; D{d_start}:D{d_end})", f"={s1}!M10", f"={s2}!M10", "M1: 85.45% vs M2: 81.57% (Variabilidad real por topografía y peajes)"),
+        ("Correlación Pearson (r)", f"COEF.DE.CORREL(D{d_start}:D{d_end}; E{d_start}:E{d_end})", f"={s1}!M11", f"={s2}!M11", "Correlación lineal muy fuerte en ambos modelos (r > 0.90)"),
+        ("Error Típico Estándar", f"ERROR.TIPICO.XY(E{d_start}:E{d_end}; D{d_start}:D{d_end})", f"={s1}!M12", f"={s2}!M12", "M1: S/ 68.21 | M2: 34.63 gal (Dispersión estándar de los residuos)"),
+        ("Proyección a 500 km", f"PRONOSTICO.LINEAL(500; E{d_start}:E{d_end}; D{d_start}:D{d_end})", f"=_xlfn.FORECAST.LINEAR(500, {s1}!E{d_start}:E{d_end}, {s1}!D{d_start}:D{d_end})", f"=_xlfn.FORECAST.LINEAR(500, {s2}!E{d_start}:E{d_end}, {s2}!D{d_start}:D{d_end})", "Estimación conjunta para un flete de distancia media (500 km)"),
+        ("Proyección a 1,000 km", f"PRONOSTICO.LINEAL(1000; E{d_start}:E{d_end}; D{d_start}:D{d_end})", f"=_xlfn.FORECAST.LINEAR(1000, {s1}!E{d_start}:E{d_end}, {s1}!D{d_start}:D{d_end})", f"=_xlfn.FORECAST.LINEAR(1000, {s2}!E{d_start}:E{d_end}, {s2}!D{d_start}:D{d_end})", "Estimación conjunta para ruta interprovincial larga (1,000 km)")
     ]
 
     fmts_m1 = [None, None, "#,##0", '"S/ "0.0000"/km"', '"S/ "#,##0.00', "0.00%", "0.0000", '"S/ "#,##0.00', '"S/ "#,##0.00', '"S/ "#,##0.00']
@@ -357,34 +349,36 @@ def construir_hoja_comparativa(wb):
 
     for idx, row_vals in enumerate(rows):
         r = 5 + idx
-        ws.row_dimensions[r].height = 24
-        ws.row_dimensions[r].height = 30
+        ws.row_dimensions[r].height = 28
         for c_idx, val in enumerate(row_vals, start=1):
-            cell = ws.cell(row=r, column=c_idx, value=val)
             cell = ws.cell(row=r, column=c_idx)
             cell.value = val
+            cell.border = border_all
+
             # Columna B es texto descriptivo de la fórmula (forzar tipo texto para evitar #¿NOMBRE?)
             if c_idx == 2:
                 cell.data_type = "s"
                 cell.number_format = "@"
                 cell.font = Font(name="Consolas", size=9.5, color="1E3A8A")
+                cell.alignment = Alignment(vertical="center")
+            elif c_idx == 1:
+                cell.font = font_bold
+                cell.alignment = Alignment(vertical="center")
             else:
-                cell.font = font_bold if c_idx == 1 else font_data
-            cell.border = border_all
-            cell.font = font_bold if c_idx == 1 else font_data
+                cell.font = font_data
+                cell.alignment = Alignment(vertical="center")
+
             if idx % 2 == 1:
                 cell.fill = fill_alt
+
             if c_idx == 3 and fmts_m1[idx]:
                 cell.number_format = fmts_m1[idx]
                 cell.alignment = Alignment(horizontal="right", vertical="center")
             elif c_idx == 4 and fmts_m2[idx]:
                 cell.number_format = fmts_m2[idx]
                 cell.alignment = Alignment(horizontal="right", vertical="center")
-            else:
-                cell.alignment = Alignment(vertical="center", wrap_text=True)
 
-    widths = {"A": 26, "B": 30, "C": 28, "D": 30, "E": 56}
-    widths = {"A": 26, "B": 40, "C": 28, "D": 30, "E": 60}
+    widths = {"A": 26, "B": 36, "C": 28, "D": 30, "E": 64}
     for col, w in widths.items():
         ws.column_dimensions[col].width = w
 
@@ -405,10 +399,10 @@ def crear_excel_regresion():
         fmt_y='"S/ "#,##0.00',
         fmt_m='"S/ "0.0000',
         desc_m="Costo variable marginal por cada km adicional (S//km)",
-        desc_b="Costo fijo base de despacho, estiba y gestión (X = 0)",
-        desc_r2="% de variación del costo explicado por la distancia",
-        interpretacion_m="La pendiente positiva m = S/ 4.7776/km indica que por cada kilómetro adicional recorrido, el costo total de transporte se incrementa en promedio S/ 4.78, partiendo de un costo fijo base de S/ 253.94.",
-        interpretacion_r2="El coeficiente R² = 99.98% demuestra un ajuste lineal prácticamente perfecto: el 99.98% de la variabilidad del costo total se explica por la distancia recorrida, brindando altísima confiabilidad para cotizaciones.",
+        desc_b="Costo base / ajuste de inicio operativo (X = 0)",
+        desc_r2="% de variación del costo explicado por la distancia (85.45%)",
+        interpretacion_m="La pendiente positiva m = S/ 0.3825/km indica que por cada kilómetro adicional recorrido, el costo total de flete se incrementa en promedio S/ 0.38 (aproximadamente S/ 38.25 por cada 100 km), reflejando una tarifa de transporte con escala por kilometraje.",
+        interpretacion_r2="El coeficiente R² = 85.45% (r = 0.9244) confirma una correlación lineal positiva muy fuerte y representativa de la logística real peruana. El 14.55% de varianza no explicada captura factores operacionales reales: peajes interprovinciales, sobrecostos por topografía de sierra/selva, tiempos de espera y variaciones en la densidad de carga.",
         dist_sim=650
     )
 
@@ -422,16 +416,16 @@ def crear_excel_regresion():
         unidad_y="gal",
         fmt_y='#,##0.00" gal"',
         fmt_m='0.0000" gal/km"',
-        desc_m="Consumo marginal de diésel por km adicional (~7.74 km/gal)",
-        desc_b="Consumo fijo inicial (maniobras, carga y salida de Lima)",
-        desc_r2="% de variación del combustible explicado por la distancia",
-        interpretacion_m="La pendiente positiva m = 0.1293 gal/km indica que por cada kilómetro adicional recorrido la unidad consume en promedio 0.1293 galones de diésel (12.93 galones cada 100 km, rendimiento medio de 7.74 km/galón), con un consumo fijo inicial de 9.71 galones.",
-        interpretacion_r2="El coeficiente R² = 95.13% refleja un ajuste lineal muy fuerte y altamente confiable. El 4.87% de variabilidad no explicada (1 - R²) se atribuye a factores topográficos de la red vial peruana (mayor consumo en rutas andinas de sierra/selva frente a rutas planas costeras).",
+        desc_m="Consumo marginal de diésel por km adicional (~5.93 km/gal)",
+        desc_b="Consumo base inicial de maniobra y partida (X = 0)",
+        desc_r2="% de variación del combustible explicado por la distancia (81.57%)",
+        interpretacion_m="La pendiente positiva m = 0.1686 gal/km indica que la flota consume en promedio 0.1686 galones de diésel por cada km recorrido (16.86 galones cada 100 km, rendimiento medio de 5.93 km/galón en ruta mixta nacional).",
+        interpretacion_r2="El coeficiente R² = 81.57% (r = 0.9032) demuestra una correlación lineal muy alta con variabilidad realista. El 18.43% de varianza refleja fielmente el perfil geográfico del Perú: las rutas hacia la Sierra (Ticlio a 4,818 msnm, Cerro de Pasco, Puno) exigen un consumo significativamente mayor de combustible por km que las rutas planas de la Costa (Ica, Trujillo, Chiclayo).",
         dist_sim=650
     )
 
     # Hoja 3: Resumen Comparativo
-    construir_hoja_comparativa(wb)
+    construir_hoja_comparativa(wb, n=len(df))
 
     wb.save("Sistema_Regresion_Logistica.xlsx")
     print("Archivo Excel 'Sistema_Regresion_Logistica.xlsx' (3 hojas con 2 modelos completos) generado con éxito.")

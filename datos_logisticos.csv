@@ -1,26 +1,24 @@
 ﻿ID_Envio,Ruta,Region,Distancia_km,Costo_Total_Soles,Consumo_Combustible_Gal
-ENV-001,Lima - Chosica,Sierra,45,466.89,17.12
-ENV-002,Lima - Cañete,Costa,140,921.23,22.65
-ENV-003,Lima - Barranca,Costa,185,1142.79,31.76
-ENV-004,Lima - Chincha,Costa,200,1222.18,27.86
-ENV-005,Lima - Pisco,Costa,235,1375.8,35.62
-ENV-006,Lima - Huacho,Costa,150,968.6,25.76
-ENV-007,Lima - Ica,Costa,305,1733.27,38.36
-ENV-008,Lima - La Oroya,Sierra,175,1095.37,30.67
-ENV-009,Lima - Huancayo,Sierra,310,1732.18,52.81
-ENV-010,Lima - Chimbote,Costa,430,2323.33,67.16
-ENV-011,Lima - Huaraz,Sierra,400,2162.59,63.3
-ENV-012,Lima - Trujillo,Costa,560,2927.57,78.83
-ENV-013,Lima - Ayacucho,Sierra,565,2967.47,86.16
-ENV-014,Lima - Chiclayo,Costa,770,3887.07,106.96
-ENV-015,Lima - Cajamarca,Sierra,860,4318.66,149.89
-ENV-016,Lima - Arequipa,Sierra,1010,5075.28,167.11
-ENV-017,Lima - Piura,Costa,990,4961.89,115.79
-ENV-018,Lima - Cusco,Sierra,1100,5543.83,157.5
-ENV-019,Lima - Puno,Sierra,1290,6395.15,180.47
-ENV-020,Lima - Tacna,Costa,1295,6392.84,160.91
-ENV-021,Lima - Tumbes,Costa,1270,6420.45,148.27
-ENV-022,Lima - Moquegua,Costa,1140,5711.7,166.4
-ENV-023,Lima - Tarma,Sierra,230,1354.62,39.74
-ENV-024,Lima - Huánuco,Sierra,415,2218.35,74.87
-ENV-025,Lima - Tingo María,Selva,550,2878.02,86.98
+R-01,Lima - La Oroya,Sierra,174,93.04,35.85
+R-02,Lima - Huancayo,Sierra,298,123.2,59.73
+R-03,Lima - Cerro de Pasco,Sierra,302,124.11,56.1
+R-04,Lima - Ica,Costa,303,107.28,39.04
+R-05,Lima - Huaraz,Sierra,406,149.6,80.63
+R-06,Lima - Huánuco,Sierra,410,154.37,76.05
+R-07,Lima - Chimbote,Costa,431,128.91,54.98
+R-08,Lima - Ayacucho,Sierra,543,183.53,101.72
+R-09,Lima - Trujillo,Costa,561,157.48,69.34
+R-10,Lima - Chiclayo,Costa,770,215.85,93.35
+R-11,Lima - Pucallpa,Selva,785,294.29,135.78
+R-12,Lima - Cajamarca,Sierra,861,247.31,172.96
+R-13,Lima - Abancay,Sierra,907,364.33,184.83
+R-14,Lima - Piura,Costa,981,275.07,117.83
+R-15,Lima - Arequipa,Sierra,1009,296.45,213.15
+R-16,Lima - Cusco,Sierra,1105,442.69,220.49
+R-17,Lima - Moquegua,Costa,1145,341.88,141.47
+R-18,Lima - Chachapoyas,Sierra,1219,485.09,246.03
+R-19,Lima - Tumbes,Costa,1259,354.99,153.8
+R-20,Lima - Tacna,Costa,1293,386.92,154.92
+R-21,Lima - Puno,Sierra,1335,442.79,282.75
+R-22,Lima - Moyobamba,Selva,1363,569.69,240.27
+R-23,Lima - Pto. Maldonado,Selva,1638,799.01,285.41
