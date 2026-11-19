@@ -990,7 +990,7 @@ with tab_comp:
         1. **Estructuración y depuración de datos:** Se organizaron los {len(df_base)} registros de rutas reales en dos hojas independientes (`Modelo 1 - Costo Transporte` y `Modelo 2 - Combustible`) colocando la variable independiente $X$ (`D7:D{6+len(df_base)}`) y dependiente $Y$ (`E7:E{6+len(df_base)}`).
         2. **Cálculo automatizado de sumatorias discretas (MCO):** Se generaron columnas auxiliares formuladas para $X^2$ (`=D7^2`), $Y^2$ (`=E7^2`) y $X\\cdot Y$ (`=D7*E7`), consolidando las sumatorias en la fila {7+len(df_base)} con `=SUM(...)`.
         3. **Obtención de parámetros mediante funciones nativas de Excel:** Se aplicaron `=PENDIENTE(...)`, `=INTERSECCION.EJE(...)`, `=COEFICIENTE.R2(...)`, `=COEF.DE.CORREL(...)` y `=ERROR.TIPICO.XY(...)` con sintaxis nativa de hojas de cálculo.
-        4. **Cálculo de estimaciones y residuos:** En cada fila se calculó la recta ajustada $\\hat{Y}$ con referencia absoluta (`=$M$8*D7+$M$9`) y el error residual (`=E7-I7`).
+        4. **Cálculo de estimaciones y residuos:** En cada fila se calculó la recta ajustada $\\hat{{Y}}$ con referencia absoluta (`=$M$8*D7+$M$9`) y el error residual (`=E7-I7`).
         5. **Simulador predictivo dinámico:** Se habilitó una celda de entrada editable conectada a `PRONOSTICO.LINEAL` para proyectar cualquier kilometraje en tiempo real.
         6. **Visualización y hoja comparativa:** Se insertaron gráficos de dispersión XY con línea de tendencia lineal y una tercera hoja `Resumen Comparativo` vinculada dinámicamente mediante fórmulas.
         """)
